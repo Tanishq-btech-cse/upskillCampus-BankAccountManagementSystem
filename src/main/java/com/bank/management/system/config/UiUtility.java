@@ -5,6 +5,7 @@ import com.bank.management.system.entity.BankData;
 import com.bank.management.system.entity.History;
 import com.bank.management.system.exceptions.NoTransectionFound;
 import com.bank.management.system.service.AccountService;
+import com.bank.management.system.service.RazorpayService;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
@@ -400,40 +401,76 @@ public class UiUtility {
         }
     }
 
+//    public static void depositUI() {
+//        if (!verifyMPin()) return;
+//        String input = (String) JOptionPane.showInputDialog(
+//                null,
+//                "Enter Deposit Amount:",
+//                "Deposit Amount",
+//                JOptionPane.PLAIN_MESSAGE,
+//                smallIcon,
+//                null,
+//                "0.0"
+//        );
+//        if (input != null) {
+//            String msg = service.deposit(loggedInAccount, Double.parseDouble(input));
+//            refreshAccount(); // update from DB
+//            if(msg.equals("Deposit successful 👍")) {
+//                JOptionPane.showMessageDialog(
+//                        null,
+//                        "Deposit Successful 👍\n" +
+//                                "Account Balance: ₹" + loggedInAccount.getBalance(),
+//                        "Transaction Status",
+//                        JOptionPane.INFORMATION_MESSAGE,
+//                        smallIcon
+//                );
+//            }
+//            else {
+//                JOptionPane.showMessageDialog(
+//                        null,
+//                        "Invalid attempt of deposit ❌\n" +
+//                                " ",
+//                        "Transaction Status",
+//                        JOptionPane.INFORMATION_MESSAGE,
+//                        smallIcon
+//                );
+//            }
+//        }
+//    }
+
     public static void depositUI() {
+
         if (!verifyMPin()) return;
-        String input = (String) JOptionPane.showInputDialog(
-                null,
-                "Enter Deposit Amount:",
-                "Deposit Amount",
-                JOptionPane.PLAIN_MESSAGE,
-                smallIcon,
-                null,
-                "0.0"
-        );
-        if (input != null) {
-            String msg = service.deposit(loggedInAccount, Double.parseDouble(input));
-            refreshAccount(); // update from DB
-            if(msg.equals("Deposit successful 👍")) {
-                JOptionPane.showMessageDialog(
-                        null,
-                        "Deposit Successful 👍\n" +
-                                "Account Balance: ₹" + loggedInAccount.getBalance(),
-                        "Transaction Status",
-                        JOptionPane.INFORMATION_MESSAGE,
-                        smallIcon
-                );
+
+        try {
+            String amt = JOptionPane.showInputDialog("Enter amount:");
+
+            if (amt == null || amt.isEmpty()) return;
+
+            double amount = Double.parseDouble(amt);
+            String orderId = RazorpayService.createOrder(amount);
+            java.awt.Desktop.getDesktop().browse(
+                    new java.net.URI("https://razorpay.com/")
+            );
+
+            int result = JOptionPane.showConfirmDialog(
+                    null,
+                    "Complete payment in browser.\nClick YES after success.",
+                    "Payment",
+                    JOptionPane.YES_NO_OPTION
+            );
+
+            if (result == JOptionPane.YES_OPTION) {
+
+                String msg = service.deposit(loggedInAccount, amount);
+                refreshAccount();
+
+                JOptionPane.showMessageDialog(null,
+                        msg + "\nBalance: " + loggedInAccount.getBalance());
             }
-            else {
-                JOptionPane.showMessageDialog(
-                        null,
-                        "Invalid attempt of deposit ❌\n" +
-                                " ",
-                        "Transaction Status",
-                        JOptionPane.INFORMATION_MESSAGE,
-                        smallIcon
-                );
-            }
+
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(null, e.getMessage());
         }
     }
     public static void withdrawUI() {
