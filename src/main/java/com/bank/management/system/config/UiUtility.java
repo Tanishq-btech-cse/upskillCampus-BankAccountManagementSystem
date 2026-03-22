@@ -2,9 +2,11 @@ package com.bank.management.system.config;
 
 import com.bank.management.system.entity.Account;
 import com.bank.management.system.entity.History;
+import com.bank.management.system.exceptions.NoTransectionFound;
 import com.bank.management.system.service.AccountService;
 
 import javax.swing.*;
+import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.util.List;
 
@@ -96,7 +98,7 @@ public class UiUtility {
 
         JLabel title = new JLabel("BANK LOGIN");
         title.setFont(new Font("Segoe UI", Font.BOLD, 26));
-        title.setForeground(new Color(0, 102, 204));
+        title.setForeground(new Color(65, 105, 225));
 
         gbc.gridx = 0;
         gbc.gridy = 0;
@@ -168,12 +170,12 @@ public class UiUtility {
         frame.setSize(500, 500);
         frame.setResizable(false);
         frame.setLocationRelativeTo(null);
-
-        JPanel panel = new JPanel(new GridLayout(7, 2, 10, 10));
-        panel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
-
+        JPanel panel = new JPanel(new GridLayout(9, 2, 10, 10));
+        panel.setBorder(BorderFactory.createEmptyBorder(25, 25, 25, 25));
         JTextField nameField = new JTextField();
         JTextField userField = new JTextField();
+        JTextField bankField = new JTextField();
+        JTextField ifscField = new JTextField();
         JPasswordField passField = new JPasswordField();
         JTextField balanceField = new JTextField();
         JPasswordField mpinField = new JPasswordField();
@@ -183,6 +185,12 @@ public class UiUtility {
 
         panel.add(new JLabel("Username:"));
         panel.add(userField);
+
+        panel.add(new JLabel("Bank Name"));
+        panel.add(bankField);
+
+        panel.add(new JLabel("IFSC"));
+        panel.add(ifscField);
 
         panel.add(new JLabel("Password:"));
         panel.add(passField);
@@ -205,6 +213,8 @@ public class UiUtility {
             service.openAccount(
                     nameField.getText(),
                     Double.parseDouble(balanceField.getText()),
+                    bankField.getText(),
+                    ifscField.getText(),
                     userField.getText(),
                     new String(passField.getPassword()),
                     Integer.parseInt(new String(mpinField.getPassword()))
@@ -270,7 +280,8 @@ public class UiUtility {
 
         int option = JOptionPane.showConfirmDialog(
                 null, pf, "Enter MPIN",
-                JOptionPane.OK_CANCEL_OPTION,JOptionPane.PLAIN_MESSAGE,
+                JOptionPane.OK_CANCEL_OPTION,
+                JOptionPane.PLAIN_MESSAGE,
                 smallIcon
         );
 
@@ -279,57 +290,111 @@ public class UiUtility {
             int entered = Integer.parseInt(new String(pf.getPassword()));
 
             if (entered == loggedInAccount.getMPin()) {
-                return false;
+                return true;
             } else {
-                JOptionPane.showMessageDialog(null, "Wrong MPIN",
-                        "",JOptionPane.PLAIN_MESSAGE,smallIcon);
+                JOptionPane.showMessageDialog(
+                        null,
+                        "Wrong MPIN",
+                        "Error",
+                        JOptionPane.ERROR_MESSAGE,
+                        smallIcon
+                );
             }
         }
-        return true;
+        return false;
     }
-
     public static void showTransectionHistoryUI() {
-        JFrame frame = new JFrame("Transection History");
-        frame.setSize(800,400);
-        frame.setLocationRelativeTo(null);
-        JLabel title = new JLabel(
-                "Transection History - Account " +
-                        loggedInAccount.getAccountNumber() +
-                        "|| Holder Name: " +
-                        loggedInAccount.getName(),
-                SwingConstants.CENTER
-        );
-        title.setFont(new Font("Segoe UI", Font.BOLD, 18));
-        List<History> historyList = service.getTransactionHistory(loggedInAccount.getAccountNumber());
-        String[] columns = {
-                "Transaction ID",
-                "Type",
-                "Amount",
-                "Date & Time"
-        };
-        Object[][] data = new Object[historyList.size()][4];
+        if (!verifyMPin()) return;
+        try {
+            List<History> historyList =
+                    service.getTransactionHistory(loggedInAccount.getAccountNumber());
 
-        for (int i = 0; i < historyList.size(); i++) {
-            History h = historyList.get(i);
-            data[i][0] = h.getTransectionId();
-            data[i][1] = h.getType();
-            data[i][2] = h.getAmount();
-            data[i][3] = h.getDateTime();
+            JFrame frame = new JFrame("Transaction History");
+            frame.setSize(900, 500);
+            frame.setLocationRelativeTo(null);
+            frame.setLayout(new BorderLayout());
+
+            JLabel title = new JLabel(
+                    "Transaction History - Account " +
+                            loggedInAccount.getAccountNumber(),
+                    SwingConstants.CENTER
+            );
+            title.setFont(new Font("Segoe UI", Font.BOLD, 18));
+
+            String[] columns = {
+                    "Transaction ID", "Type", "Amount", "Date & Time"
+            };
+
+            DefaultTableModel model = new DefaultTableModel(columns, 0);
+            JTable table = new JTable(model);
+            table.setRowHeight(25);
+
+            JScrollPane scrollPane = new JScrollPane(table);
+
+            loadTableData(model, historyList);
+
+            JPanel filterPanel = new JPanel();
+
+            String[] types = {"All", "Deposit", "Withdraw", "Transfer", "Received"};
+            JComboBox<String> typeFilter = new JComboBox<>(types);
+
+            JTextField minAmountField = new JTextField(10);
+
+            JButton filterBtn = new JButton("Filter");
+
+            filterPanel.add(new JLabel("Type:"));
+            filterPanel.add(typeFilter);
+
+            filterPanel.add(new JLabel("Min Amount:"));
+            filterPanel.add(minAmountField);
+
+            filterPanel.add(filterBtn);
+
+            filterBtn.addActionListener(e -> {
+
+                String selectedType = typeFilter.getSelectedItem().toString();
+                String minAmtText = minAmountField.getText();
+
+                double minAmount = 0;
+                if (!minAmtText.isEmpty()) {
+                    minAmount = Double.parseDouble(minAmtText);
+                }
+
+                model.setRowCount(0);
+
+                for (History h : historyList) {
+
+                    boolean typeMatch =
+                            selectedType.equals("All") ||
+                                    h.getType().equalsIgnoreCase(selectedType);
+
+                    boolean amountMatch =
+                            h.getAmount() >= minAmount;
+
+                    if (typeMatch && amountMatch) {
+                        model.addRow(new Object[]{
+                                h.getTransectionId(),
+                                h.getType(),
+                                h.getAmount(),
+                                h.getDateTime()
+                        });
+                    }
+                }
+            });
+
+            frame.add(title, BorderLayout.NORTH);
+            frame.add(scrollPane, BorderLayout.CENTER);
+            frame.add(filterPanel, BorderLayout.SOUTH);
+
+            frame.setVisible(true);
+
+        } catch (NoTransectionFound e) {
+            JOptionPane.showMessageDialog(null, e.getMessage());
         }
-        JTable table = new JTable(data, columns);
-        table.setRowHeight(25);
-        JScrollPane scrollPane = new JScrollPane(table);
-
-        frame.setLayout(new BorderLayout());
-        frame.add(title, BorderLayout.NORTH);
-        frame.add(scrollPane, BorderLayout.CENTER);
-
-        frame.setVisible(true);
-
     }
 
     public static void depositUI() {
-        if (verifyMPin()) return;
+        if (!verifyMPin()) return;
         String input = (String) JOptionPane.showInputDialog(
                 null,
                 "Enter Deposit Amount:",
@@ -365,7 +430,7 @@ public class UiUtility {
         }
     }
     public static void withdrawUI() {
-        if (verifyMPin()) return;
+        if (!verifyMPin()) return;
         String input = (String) JOptionPane.showInputDialog(
                 null,
                 "Enter Withdraw Amount:",
@@ -401,6 +466,7 @@ public class UiUtility {
     }
 
     public static void checkBalanceUI() {
+        if(!verifyMPin()) return;
         refreshAccount();
         JOptionPane.showMessageDialog(
                 null,
@@ -411,13 +477,19 @@ public class UiUtility {
     }
 
     public static void transferUI() {
-        if (verifyMPin()) return;
+        if (!verifyMPin()) return;
         String acc = (String) JOptionPane.showInputDialog(null,"Receiver Account:",
                 "Transfer Amount",
                 JOptionPane.PLAIN_MESSAGE,
                 smallIcon,
                 null,
                 "82705XXXXXXXX");
+        String ifsc = (String) JOptionPane.showInputDialog(null,"IFSC code",
+                "Transfer Amount",
+                JOptionPane.PLAIN_MESSAGE,
+                smallIcon,
+                null,
+                " ");
         String amt = (String) JOptionPane.showInputDialog(null,"Amount:","Transection Status",
                 JOptionPane.PLAIN_MESSAGE,
                 smallIcon,
@@ -426,34 +498,39 @@ public class UiUtility {
             String msg = service.transfer(
                     loggedInAccount,
                     Long.parseLong(acc),
+                    ifsc,
                     Double.parseDouble(amt)
             );
             refreshAccount();
-            if (msg.equals("Transfer successful 👍")) {
-                JOptionPane.showMessageDialog(null,
-                        "Transfer Successful 👍\n" +
-                                "Account Balance: " + loggedInAccount.getBalance(), "Transaction Status",
-                        JOptionPane.INFORMATION_MESSAGE,
-                        smallIcon);
-            } else if (msg.equals("Receiver account not found ❌")) {
-                JOptionPane.showMessageDialog(null,
-                        "Receiver account not found ❌\n" +
-                                "Please enter valid Account Number ⚠️", "Transaction Status",
-                        JOptionPane.INFORMATION_MESSAGE,
-                        smallIcon);
-            } else if (msg.equals("Insufficient balance ❌")) {
-                JOptionPane.showMessageDialog(null,
-                        "Insufficient balance ❌\n" +
-                                " ", "Transaction Status",
-                        JOptionPane.INFORMATION_MESSAGE,
-                        smallIcon);
-            }
-            else {
-                JOptionPane.showMessageDialog(null,
-                        "Invalid amount ❌\n" +
-                                " ", "Transaction Status",
-                        JOptionPane.INFORMATION_MESSAGE,
-                        smallIcon);
+            switch (msg) {
+                case "Transfer successful 👍":
+                    JOptionPane.showMessageDialog(null,
+                            "Transfer Successful 👍\n" +
+                                    "Account Balance: " + loggedInAccount.getBalance(), "Transaction Status",
+                            JOptionPane.INFORMATION_MESSAGE,
+                            smallIcon);
+                    break;
+                case "Receiver account not found ❌":
+                    JOptionPane.showMessageDialog(null,
+                            "Receiver account not found ❌\n" +
+                                    "Please enter valid Account Number ⚠️", "Transaction Status",
+                            JOptionPane.INFORMATION_MESSAGE,
+                            smallIcon);
+                    break;
+                case "Insufficient balance ❌":
+                    JOptionPane.showMessageDialog(null,
+                            "Insufficient balance ❌\n" +
+                                    " ", "Transaction Status",
+                            JOptionPane.INFORMATION_MESSAGE,
+                            smallIcon);
+                    break;
+                default:
+                    JOptionPane.showMessageDialog(null,
+                            "Invalid amount ❌\n" +
+                                    " ", "Transaction Status",
+                            JOptionPane.INFORMATION_MESSAGE,
+                            smallIcon);
+                    break;
             }
         }
     }
@@ -461,6 +538,16 @@ public class UiUtility {
     private static void refreshAccount() {
         loggedInAccount =
                 service.getUpdatedAccount(loggedInAccount.getAccountNumber());
+    }
+    private static void loadTableData(DefaultTableModel model, List<History> list) {
+        for (History h : list) {
+            model.addRow(new Object[]{
+                    h.getTransectionId(),
+                    h.getType(),
+                    h.getAmount(),
+                    h.getDateTime()
+            });
+        }
     }
 
 }

@@ -48,6 +48,8 @@
             org.hibernate.dialect.MySQLDialect
         </property>
 
+        <property name="hibernate.hbm2ddl.auto">update</property>
+
     </session-factory>
     <!-- mysql -h 10.95.230.155 -u friend -p -->
 </hibernate-configuration>

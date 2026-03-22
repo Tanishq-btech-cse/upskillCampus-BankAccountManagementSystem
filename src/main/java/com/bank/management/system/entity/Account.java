@@ -68,6 +68,11 @@ public class Account {
     @Column(name = "holder_name", nullable = false)
     private String name;
 
+    @Column(name = "bank_name", nullable = false)
+    private String bankName;
+    @Column(name = "ifsc_code", nullable = false)
+    private String ifscCode;
+
     /**
      * Current balance available in the account.
      */
@@ -91,6 +96,22 @@ public class Account {
      */
     @Column(name = "mpin", nullable = false)
     private int mPin;
+
+    public String getBankName() {
+        return bankName;
+    }
+
+    public void setBankName(String bankName) {
+        this.bankName = bankName;
+    }
+
+    public String getIfscCode() {
+        return ifscCode;
+    }
+
+    public void setIfscCode(String ifscCode) {
+        this.ifscCode = ifscCode;
+    }
 
     /**
      * List of all transactions associated with this account.

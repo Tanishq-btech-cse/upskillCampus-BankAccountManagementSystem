@@ -15,9 +15,6 @@ import static com.bank.management.system.config.UiUtility.showLoginUI;
  */
 
 public class BankUI {
-
-
-
     /**
      * Main method that starts the banking application.
      *

@@ -2,6 +2,8 @@ package com.bank.management.system.service;
 
 import com.bank.management.system.entity.Account;
 import com.bank.management.system.entity.History;
+import com.bank.management.system.exceptions.NoAccountFound;
+import com.bank.management.system.exceptions.NoTransectionFound;
 
 import java.util.List;
 
@@ -80,6 +82,7 @@ public interface AccountServiceInterface {
      */
 
     void openAccount(String name, double initialBalance,
+                     String Bank, String ifsc,
                      String username, String password, int mPin);
 
     /**
@@ -100,7 +103,8 @@ public interface AccountServiceInterface {
      * @throws IllegalArgumentException if validation fails
      * @throws RuntimeException if insufficient balance
      */
-    String transfer(Account sender, long receiverAccNo, double amount);
+    String transfer(Account sender, long receiverAccNo,
+                    String receiverIfsc, double amount);
 
     /**
      * Retrieves the latest persisted state of an account.
@@ -108,7 +112,7 @@ public interface AccountServiceInterface {
      * @param accountNumber the account number
      * @return updated {@link Account} instance
      */
-    Account getUpdatedAccount(long accountNumber);
+    Account getUpdatedAccount(long accountNumber) throws NoAccountFound;
 
     /**
      * Retrieves the transaction history for a given account.
@@ -117,5 +121,5 @@ public interface AccountServiceInterface {
      * @return list of {@link History} entries associated with the account
      */
 
-    List<History> getTransactionHistory(long accountNumber);
+    List<History> getTransactionHistory(long accountNumber) throws NoTransectionFound;
 }
