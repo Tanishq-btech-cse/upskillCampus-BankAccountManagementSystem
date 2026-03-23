@@ -213,23 +213,32 @@ public class UiUtility {
         createBtn.addActionListener(e -> {
 
             try {
+                double balance = Double.parseDouble(balanceField.getText());
+                int mpin = Integer.parseInt(new String(mpinField.getPassword()));
+
                 service.openAccount(
                         nameField.getText(),
-                        Double.parseDouble(balanceField.getText()),
+                        balance,
                         bankField.getText(),
                         ifscField.getText(),
                         userField.getText(),
                         new String(passField.getPassword()),
-                        Integer.parseInt(new String(mpinField.getPassword()))
+                        mpin
                 );
+
                 JOptionPane.showMessageDialog(frame, "Account Created Successfully 👍");
                 frame.dispose();
                 showLoginUI();
-            }
-            catch (IllegalArgumentException i) {
-                JOptionPane.showMessageDialog(null,
-                        "Fields cannot be empty",
-                        "Error",JOptionPane.ERROR_MESSAGE);
+
+            } catch (NumberFormatException ex) {
+                JOptionPane.showMessageDialog(frame,
+                        "Balance or MPIN must be numeric",
+                        "Error", JOptionPane.ERROR_MESSAGE);
+
+            } catch (IllegalArgumentException ex) {
+                JOptionPane.showMessageDialog(frame,
+                        ex.getMessage(),
+                        "Error", JOptionPane.ERROR_MESSAGE);
             }
 
         });

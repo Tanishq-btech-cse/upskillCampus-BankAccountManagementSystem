@@ -24,17 +24,17 @@
 
         <!-- Database connection URL -->
         <property name="hibernate.connection.url">
-            jdbc:mysql://10.233.228.149:3306/Management
+            jdbc:mysql://140.238.246.140:3306/Management
         </property>
 
         <!-- Database username -->
         <property name="hibernate.connection.username">
-            tanishq
+            tanishqmathpal
         </property>
 
         <!-- Database password -->
         <property name="hibernate.connection.password">
-            Tanishq@2006
+            tanishq@2006
         </property>
 
 
